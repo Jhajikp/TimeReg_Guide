@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ExpenseWise — CAPEX/OPEX Categorization</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+
+    .bg-mesh {
+      background-color: #f0f4ff;
+      background-image:
+        radial-gradient(at 20% 10%, rgba(99,102,241,.12) 0, transparent 50%),
+        radial-gradient(at 80% 0%,  rgba(79,70,229,.10)  0, transparent 45%),
+        radial-gradient(at 0%  60%, rgba(165,180,252,.15) 0, transparent 50%),
+        radial-gradient(at 90% 70%, rgba(224,231,255,.2)  0, transparent 50%);
+      min-height: 100vh;
+    }
+
+    .glass-header {
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(99,102,241,0.12);
+    }
+
+    .logo-gradient { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%); }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 8px 32px rgba(99,102,241,.08);
+      border: 1px solid rgba(99,102,241,.08);
+    }
+
+    /* Pill radio buttons */
+    .pill-radio input { display: none; }
+    .pill-radio label {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 500;
+      border: 1.5px solid #e5e7eb; color: #6b7280; cursor: pointer; user-select: none;
+      transition: all .18s cubic-bezier(.4,0,.2,1);
+      background: #fafafa;
+    }
+    .pill-radio label:hover { border-color: #a5b4fc; color: #4f46e5; background: #eef2ff; }
+    .pill-radio input:checked + label {
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      border-color: transparent; color: #fff;
+      box-shadow: 0 4px 12px rgba(99,102,241,.35);
+    }
+    .pill-radio .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .7; transition: opacity .15s; }
+    .pill-radio input:checked + label .dot { opacity: 1; background: #fff; }
+
+    /* Custom select */
+    .custom-select {
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 40px !important;
+    }
+    .custom-select:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,.15) !important; }
+
+    /* Custom checkbox */
+    .custom-check input { display: none; }
+    .custom-check label { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; font-size: 13px; color: #374151; }
+    .check-box {
+      flex-shrink: 0; width: 20px; height: 20px; border-radius: 6px;
+      border: 2px solid #d1d5db; background: #fff; margin-top: 1px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .custom-check input:checked ~ label .check-box {
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      border-color: transparent; box-shadow: 0 3px 8px rgba(99,102,241,.3);
+    }
+    .check-tick { display: none; }
+    .custom-check input:checked ~ label .check-tick { display: block; }
+
+    /* Confidence bar */
+    .bar-glow-capex { box-shadow: 0 0 10px rgba(99,102,241,.5); }
+    .bar-glow-opex  { box-shadow: 0 0 10px rgba(249,115,22,.5); }
+
+    /* Gradient buttons */
+    .btn-primary {
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      box-shadow: 0 4px 14px rgba(99,102,241,.4);
+      transition: all .2s cubic-bezier(.4,0,.2,1);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+      box-shadow: 0 6px 20px rgba(99,102,241,.5); transform: translateY(-1px);
+    }
+    .btn-primary:active:not(:disabled) { transform: translateY(0); }
+    .btn-primary:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-reset { transition: all .18s; border: 1.5px solid #e5e7eb; background: #fff; color: #6b7280; }
+    .btn-reset:hover { border-color: #f87171; color: #ef4444; background: #fef2f2; box-shadow: 0 2px 8px rgba(239,68,68,.15); }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .field-animate { animation: fadeSlideIn .22s cubic-bezier(.4,0,.2,1); }
+
+    .wbs-badge {
+      background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+      border: 1.5px solid #c7d2fe; border-radius: 12px;
+    }
+
+    .section-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+      color: #4f46e5; font-size: 11px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 100px; border: 1px solid #c7d2fe;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin .8s linear infinite; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // ── Data ──────────────────────────────────────────────────────────────────
+
+    const TEAMS = [
+      { value: 'product_area_works',    label: 'Product Area Works',      code: '01' },
+      { value: 'advanced_scheduling',   label: 'Advanced Scheduling',     code: '03' },
+      { value: 'order_inflow_closure',  label: 'Order Inflow / Closure',  code: '04' },
+      { value: 'maintenance_execution', label: 'Maintenance & Execution', code: '05' },
+      { value: 'service_foundation',    label: 'Service Foundation',      code: '08' },
+      { value: 'virtual_technician',    label: 'Virtual Technician',      code: '09' },
+      { value: 'ai_big_bets',           label: 'AI Big Bets',             code: '10' },
+    ];
+
+    const SYSTEM_TYPES = [
+      { value: 'company_managed',  label: 'Company Managed System' },
+      { value: 'onprem_iaas_paas', label: 'On-Premise / IaaS / PaaS'  },
+      { value: 'saas',             label: 'SaaS'                       },
+    ];
+
+    const ASSIGNMENT_OPTIONS = [
+      { value: 'dev_capex',   label: 'Development (CAPEX)'    },
+      { value: 'dev_opex',    label: 'Development (OPEX)'     },
+      { value: 'operations',  label: 'Operations / Support'   },
+      { value: 'op_purchase', label: 'Operational Purchase'   },
+    ];
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    function deriveWBS(teamCode, finalCategory, assignmentType) {
+      if (!teamCode) return null;
+      const base = `DS-53010-${teamCode}`;
+      if (assignmentType === 'op_purchase') return `${base}-04-XX`;
+      if (teamCode === '01')               return `${base}-03`;   // Product Area Works — operations only
+      if (assignmentType === 'operations') return `${base}-03`;
+      if (finalCategory === 'CAPEX')       return `${base}-01`;
+      if (finalCategory === 'OPEX')        return `${base}-02`;
+      return null;
+    }
+
+    function runAIEngine(form) {
+      const {
+        isProductTeam, isDevelopmentWork, developmentSystemType, assignmentDetails,
+        isResourceForecasted, forecastedDevelopmentWork, forecastedSystemType, forecastedAssignmentDetails,
+      } = form;
+
+      const activeAssign = isProductTeam === 'yes' ? assignmentDetails : forecastedAssignmentDetails;
+      if (activeAssign === 'op_purchase') return null;   // bypass
+
+      const devWork  = isProductTeam === 'yes' ? isDevelopmentWork       : forecastedDevelopmentWork;
+      const sysType  = isProductTeam === 'yes' ? developmentSystemType   : forecastedSystemType;
+
+      if ((isProductTeam === 'yes' || isResourceForecasted === 'yes') && devWork === 'yes') {
+        if (sysType === 'company_managed' || sysType === 'onprem_iaas_paas') {
+          return { category: 'CAPEX', confidence: 85, reasoning: 'Company-managed and on-premise systems create long-term capitalizable assets per finance policy.' };
+        }
+        if (sysType === 'saas') {
+          return { category: 'OPEX', confidence: 80, reasoning: 'SaaS development work is classified as operational expenditure per finance policy.' };
+        }
+      }
+
+      if (isResourceForecasted === 'yes' && forecastedDevelopmentWork === 'yes') {
+        return { category: 'CAPEX', confidence: 90, reasoning: 'Forecasted development resources allocated to a product team are classified as capital expenditure.' };
+      }
+
+      if (devWork === 'no') {
+        return { category: 'OPEX', confidence: 90, reasoning: 'Operations and support activities are classified as operational expenditure.' };
+      }
+
+      return { category: 'OPEX', confidence: 75, reasoning: 'Based on operational characteristics, this entry is classified as operational expenditure.' };
+    }
+
+    // ── Primitive UI components ───────────────────────────────────────────────
+
+    function Field({ label, required, visible = true, error, hint, children }) {
+      if (!visible) return null;
+      return (
+        <div className="mb-5 field-animate">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            {label}{required && <span className="text-indigo-400 ml-0.5">*</span>}
+            {hint && <span className="ml-2 text-xs font-normal text-gray-400">{hint}</span>}
+          </label>
+          {children}
+          {error && (
+            <p className="flex items-center gap-1 text-xs text-red-500 mt-1.5 font-medium">
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+              </svg>
+              {error}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    function RadioGroup({ name, options, value, onChange }) {
+      return (
+        <div className="flex flex-wrap gap-2">
+          {options.map(opt => (
+            <div key={opt.value} className="pill-radio">
+              <input type="radio" id={`${name}-${opt.value}`} name={name} value={opt.value}
+                checked={value === opt.value} onChange={() => onChange(opt.value)} />
+              <label htmlFor={`${name}-${opt.value}`}>
+                <span className="dot" />
+                {opt.label}
+              </label>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function Select({ options, value, onChange, placeholder }) {
+      return (
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="custom-select w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none text-gray-700 transition-all"
+        >
+          <option value="">{placeholder || 'Select…'}</option>
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      );
+    }
+
+    function Textarea({ value, onChange, placeholder, minLen }) {
+      const ok = !minLen || value.length >= minLen;
+      return (
+        <div>
+          <textarea
+            value={value} onChange={e => onChange(e.target.value)}
+            placeholder={placeholder} rows={3}
+            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none transition-all text-gray-700 placeholder-gray-300"
+          />
+          {minLen && (
+            <div className="flex items-center gap-1.5 mt-1">
+              <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${ok ? 'bg-emerald-400' : 'bg-indigo-300'}`}
+                  style={{ width: `${Math.min(100, (value.length / minLen) * 100)}%` }}
+                />
+              </div>
+              <span className={`text-xs font-medium ${ok ? 'text-emerald-600' : 'text-gray-400'}`}>
+                {value.length}/{minLen}
+              </span>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function Checkbox({ id, checked, onChange, children }) {
+      return (
+        <div className="custom-check">
+          <input type="checkbox" id={id} checked={checked} onChange={e => onChange(e.target.checked)} />
+          <label htmlFor={id}>
+            <span className="check-box">
+              <svg className="check-tick w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            </span>
+            <span>{children}</span>
+          </label>
+        </div>
+      );
+    }
+
+    // ── WBS badge ─────────────────────────────────────────────────────────────
+
+    function WBSBadge({ code }) {
+      if (!code) return null;
+      const [copied, setCopied] = useState(false);
+      function copy() {
+        navigator.clipboard?.writeText(code).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); });
+      }
+      return (
+        <div className="wbs-badge p-4 mt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-indigo-400 font-semibold uppercase tracking-widest mb-1">Derived WBS Code</p>
+              <p className="font-mono font-bold text-indigo-900 text-base tracking-wider">{code}</p>
+            </div>
+            <button onClick={copy}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors"
+            >
+              {copied ? (
+                <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>Copied</>
+              ) : (
+                <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>Copy</>
+              )}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Confidence bar ────────────────────────────────────────────────────────
+
+    function ConfidenceBar({ confidence, category }) {
+      const [width, setWidth] = useState(0);
+      useEffect(() => { const t = setTimeout(() => setWidth(confidence), 80); return () => clearTimeout(t); }, [confidence]);
+      const isCapex = category === 'CAPEX';
+      return (
+        <div className={`rounded-2xl p-5 mb-4 ${isCapex
+          ? 'bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100'
+          : 'bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className={`text-2xl font-extrabold tracking-tight ${isCapex ? 'text-indigo-700' : 'text-orange-700'}`}>
+                {category}
+              </span>
+              <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${isCapex
+                ? 'bg-indigo-100 text-indigo-700' : 'bg-orange-100 text-orange-700'}`}>
+                AI Suggested
+              </span>
+            </div>
+            <span className={`text-lg font-extrabold ${isCapex ? 'text-indigo-600' : 'text-orange-600'}`}>
+              {confidence}%
+            </span>
+          </div>
+          <div className="w-full bg-white/70 rounded-full h-2.5 overflow-hidden">
+            <div
+              className={`h-2.5 rounded-full transition-all duration-1000 ease-out ${isCapex
+                ? 'bg-gradient-to-r from-indigo-400 to-blue-500 bar-glow-capex'
+                : 'bg-gradient-to-r from-orange-400 to-amber-500 bar-glow-opex'}`}
+              style={{ width: `${width}%` }}
+            />
+          </div>
+          <p className="text-xs text-gray-400 mt-1 text-right font-medium">Confidence score</p>
+        </div>
+      );
+    }
+
+    // ── Submit button ─────────────────────────────────────────────────────────
+
+    function SubmitButton({ onClick, disabled }) {
+      return (
+        <button onClick={onClick} disabled={disabled}
+          className="btn-primary w-full text-white font-bold py-3 rounded-2xl text-sm flex items-center justify-center gap-2 mt-4">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
+          Submit Entry
+        </button>
+      );
+    }
+
+    // ── Section tag ───────────────────────────────────────────────────────────
+
+    function SectionTag({ icon, children }) {
+      return (
+        <span className="section-tag mb-4 inline-flex">
+          {icon}
+          {children}
+        </span>
+      );
+    }
+
+    // ── Main App ──────────────────────────────────────────────────────────────
+
+    const EMPTY_FORM = {
+      employeeType: '',
+      isProductTeam: '',
+      // Path A
+      specificProductTeam: '',
+      isDevelopmentWork: '',
+      developmentSystemType: '',
+      assignmentDetails: '',
+      // Path B
+      isResourceForecasted: '',
+      forecastedProductTeam: '',
+      forecastedDevelopmentWork: '',
+      forecastedSystemType: '',
+      forecastedAssignmentDetails: '',
+      isPlatformTeamStandingCapacity: '',
+      // Path B2
+      taskPerformed: '',
+      priorApprovalConfirmed: false,
+      vmsManaged: '',
+      assignmentDetailsTextarea: '',
+      // External
+      ensureRatesMatch: false,
+      // Override
+      overrideCategory: '',
+      overrideReason: '',
+    };
+
+    function App() {
+      const [form, setForm] = useState(EMPTY_FORM);
+      const [aiResult, setAiResult]       = useState(null);
+      const [aiLoading, setAiLoading]     = useState(false);
+      const [showResult, setShowResult]   = useState(false);
+      const [submitted, setSubmitted]     = useState(false);
+      const [errors, setErrors]           = useState({});
+
+      const isDirty = JSON.stringify(form) !== JSON.stringify(EMPTY_FORM);
+
+      function handleReset() {
+        setForm(EMPTY_FORM);
+        setAiResult(null);
+        setShowResult(false);
+        setSubmitted(false);
+        setErrors({});
+      }
+
+      // Patched setter — resets downstream on key changes
+      function set(field, value) {
+        setErrors({});
+        setShowResult(false);
+        setAiResult(null);
+        setForm(prev => {
+          const f = { ...prev, [field]: value };
+          if (field === 'employeeType')         return { ...EMPTY_FORM, employeeType: value };
+          if (field === 'isProductTeam')        return { ...EMPTY_FORM, employeeType: f.employeeType, isProductTeam: value };
+          if (field === 'isDevelopmentWork')    return { ...f, developmentSystemType: '', assignmentDetails: '', overrideCategory: '', overrideReason: '' };
+          if (field === 'isResourceForecasted') return { ...f, forecastedProductTeam: '', forecastedDevelopmentWork: '', forecastedSystemType: '', forecastedAssignmentDetails: '', isPlatformTeamStandingCapacity: '', taskPerformed: '', priorApprovalConfirmed: false, vmsManaged: '', assignmentDetailsTextarea: '', ensureRatesMatch: false, overrideCategory: '', overrideReason: '' };
+          if (field === 'forecastedDevelopmentWork') return { ...f, forecastedSystemType: '', forecastedAssignmentDetails: '', overrideCategory: '', overrideReason: '' };
+          return f;
+        });
+      }
+
+      // Derived flags
+      const ext               = form.employeeType === 'external';
+      const pathA             = form.isProductTeam === 'yes';
+      const pathB             = form.isProductTeam === 'no';
+      const pathBForecasted   = pathB && form.isResourceForecasted === 'yes';
+      const pathB2            = pathB && form.isResourceForecasted === 'no' && form.isPlatformTeamStandingCapacity === 'no';
+      const pathB3Blocked     = pathB && form.isResourceForecasted === 'no' && form.isPlatformTeamStandingCapacity === 'yes';
+
+      const activeAssign  = pathA ? form.assignmentDetails : pathBForecasted ? form.forecastedAssignmentDetails : '';
+      const isOpPurchase  = activeAssign === 'op_purchase';
+
+      const activeTeamVal = pathA ? form.specificProductTeam : pathBForecasted ? form.forecastedProductTeam : '';
+      const activeTeam    = TEAMS.find(t => t.value === activeTeamVal);
+
+      const overrideActive = aiResult && form.overrideCategory && form.overrideCategory !== aiResult.category;
+      const finalCategory  = overrideActive ? form.overrideCategory : aiResult?.category;
+      const wbsCode        = activeTeam
+        ? deriveWBS(activeTeam.code, finalCategory, activeAssign)
+        : null;
+
+      const canAnalyze = (pathA && form.assignmentDetails && !isOpPurchase)
+                      || (pathBForecasted && form.forecastedAssignmentDetails && !isOpPurchase);
+
+      // ── Validation ──────────────────────────────────────────────────────────
+      function validate() {
+        const e = {};
+        if (!form.employeeType)  e.employeeType  = 'Required';
+        if (!form.isProductTeam) e.isProductTeam = 'Required';
+
+        if (pathA) {
+          if (!form.specificProductTeam)                                           e.specificProductTeam  = 'Required';
+          if (!form.isDevelopmentWork)                                             e.isDevelopmentWork    = 'Required';
+          if (form.isDevelopmentWork === 'yes' && !form.developmentSystemType)    e.developmentSystemType = 'Required';
+          if (!form.assignmentDetails)                                             e.assignmentDetails    = 'Required';
+          if (ext && !isOpPurchase && !form.ensureRatesMatch)                     e.ensureRatesMatch     = 'Rate confirmation required';
+        }
+
+        if (pathBForecasted) {
+          if (!form.forecastedProductTeam)                                                  e.forecastedProductTeam     = 'Required';
+          if (!form.forecastedDevelopmentWork)                                              e.forecastedDevelopmentWork = 'Required';
+          if (form.forecastedDevelopmentWork === 'yes' && !form.forecastedSystemType)      e.forecastedSystemType       = 'Required';
+          if (!form.forecastedAssignmentDetails)                                            e.forecastedAssignmentDetails = 'Required';
+          if (ext && !isOpPurchase && !form.ensureRatesMatch)                              e.ensureRatesMatch           = 'Rate confirmation required';
+        }
+
+        if (pathB2) {
+          if (!form.priorApprovalConfirmed)                      e.priorApprovalConfirmed = 'Required';
+          if (ext && form.taskPerformed.length < 10)             e.taskPerformed          = 'Minimum 10 characters required';
+        }
+
+        if (aiResult && overrideActive && form.overrideReason.length < 10) {
+          e.overrideReason = 'Minimum 10 characters required';
+        }
+
+        return e;
+      }
+
+      // ── Analyse button ──────────────────────────────────────────────────────
+      function handleAnalyze() {
+        setAiLoading(true);
+        setShowResult(false);
+        setTimeout(() => {
+          const result = runAIEngine(form);
+          setAiResult(result);
+          setAiLoading(false);
+          setShowResult(true);
+          if (result) setForm(prev => ({ ...prev, overrideCategory: result.category }));
+        }, 2000);
+      }
+
+      // ── Submit ──────────────────────────────────────────────────────────────
+      function handleSubmit() {
+        const e = validate();
+        if (Object.keys(e).length > 0) { setErrors(e); return; }
+
+        const payload = {
+          ...form,
+          finalCategory,
+          wbsCode,
+          aiSuggestion: aiResult,
+          isOverridden: !!overrideActive,
+          timestamp: new Date().toISOString(),
+        };
+        console.log('ExpenseWise — Submission Payload:', payload);
+
+        setSubmitted(true);
+        setTimeout(() => {
+          handleReset();
+          setSubmitted(false);
+        }, 1500);
+      }
+
+      // ── Render ──────────────────────────────────────────────────────────────
+      return (
+        <div className="bg-mesh min-h-screen">
+
+          {/* ── Header ── */}
+          <header className="glass-header sticky top-0 z-20">
+            <div className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="logo-gradient w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg" style={{boxShadow:'0 4px 14px rgba(99,102,241,.4)'}}>
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01
+                         M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-base font-extrabold text-gray-900 tracking-tight leading-tight">ExpenseWise</h1>
+                  <p className="text-xs font-medium" style={{color:'#6366f1'}}>CAPEX / OPEX Categorization</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {isDirty && !submitted && (
+                  <button onClick={handleReset}
+                    className="btn-reset flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Reset
+                  </button>
+                )}
+                <span className="text-xs rounded-lg px-2.5 py-1 font-semibold"
+                  style={{background:'#eef2ff',color:'#4f46e5',border:'1px solid #c7d2fe'}}>v1.0</span>
+                <span className="text-xs rounded-lg px-2.5 py-1 font-semibold"
+                  style={{background:'#fffbeb',color:'#d97706',border:'1px solid #fde68a'}}>Internal</span>
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-5xl mx-auto px-6 py-8">
+
+            {/* ── Success flash ── */}
+            {submitted && (
+              <div className="card p-14 text-center">
+                <div className="w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center"
+                  style={{background:'#d1fae5'}}>
+                  <svg className="w-10 h-10" style={{color:'#10b981'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Submitted Successfully</h2>
+                <p className="text-gray-400 text-sm">Resetting the form…</p>
+              </div>
+            )}
+
+            {/* ── Main grid ── */}
+            {!submitted && (
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+
+                {/* ── LEFT: Form (3/5) ── */}
+                <div className="lg:col-span-3 card p-6 lg:p-7">
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-50">
+                    <div>
+                      <h2 className="text-base font-extrabold text-gray-900">Classification Form</h2>
+                      <p className="text-xs text-gray-400 mt-0.5">Complete all required fields to classify this entry</p>
+                    </div>
+                  </div>
+
+                  {/* F1 — Employee type */}
+                  <Field label="Employee Type" required error={errors.employeeType}>
+                    <Select
+                      options={[{ value: 'internal', label: 'Internal Employee' }, { value: 'external', label: 'External Contractor' }]}
+                      value={form.employeeType}
+                      onChange={v => set('employeeType', v)}
+                      placeholder="Select employee type…"
+                    />
+                  </Field>
+
+                  {/* F2 — Product team? */}
+                  <Field label="Are you part of a product team?" required visible={!!form.employeeType} error={errors.isProductTeam}>
+                    <RadioGroup
+                      name="isProductTeam"
+                      options={[{ value: 'yes', label: 'Yes, on a product team' }, { value: 'no', label: 'No, not on a product team' }]}
+                      value={form.isProductTeam}
+                      onChange={v => set('isProductTeam', v)}
+                    />
+                  </Field>
+
+                  {/* ══ PATH A ══════════════════════════════════════════════ */}
+                  {pathA && (
+                    <div className="mt-1 mb-4">
+                      <SectionTag>
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                        </svg>
+                        Path A — Product Team Member
+                      </SectionTag>
+                    </div>
+                  )}
+
+                  {/* F3 — Specific product team */}
+                  <Field label="Select your product team" required visible={pathA} error={errors.specificProductTeam}>
+                    <Select options={TEAMS} value={form.specificProductTeam} onChange={v => set('specificProductTeam', v)} placeholder="Select product team…" />
+                  </Field>
+
+                  {/* F4 — Dev related? */}
+                  <Field label="Is this work development related?" required visible={pathA && !!form.specificProductTeam} error={errors.isDevelopmentWork}>
+                    <RadioGroup
+                      name="isDevelopmentWork"
+                      options={[{ value: 'yes', label: 'Yes — Development' }, { value: 'no', label: 'No — Operations / Support' }]}
+                      value={form.isDevelopmentWork}
+                      onChange={v => set('isDevelopmentWork', v)}
+                    />
+                  </Field>
+
+                  {/* F5 — System type (direct) */}
+                  <Field label="What type of system is this?" required visible={pathA && form.isDevelopmentWork === 'yes'} error={errors.developmentSystemType}>
+                    <RadioGroup name="developmentSystemType" options={SYSTEM_TYPES} value={form.developmentSystemType} onChange={v => set('developmentSystemType', v)} />
+                  </Field>
+
+                  {/* F6 — Assignment details */}
+                  <Field label="Assignment details" required visible={pathA && !!form.isDevelopmentWork} error={errors.assignmentDetails}>
+                    <Select options={ASSIGNMENT_OPTIONS} value={form.assignmentDetails} onChange={v => set('assignmentDetails', v)} placeholder="Select assignment type…" />
+                  </Field>
+
+                  {/* F17 — Rate confirmation (External, Path A) */}
+                  <Field label="Rate confirmation" required visible={pathA && ext && !isOpPurchase} error={errors.ensureRatesMatch}>
+                    <Checkbox id="rates-a" checked={form.ensureRatesMatch} onChange={v => set('ensureRatesMatch', v)}>
+                      I confirm that the billing rate matches the agreed contract rate
+                    </Checkbox>
+                  </Field>
+
+                  {/* ══ PATH B ══════════════════════════════════════════════ */}
+                  {pathB && (
+                    <div className="mt-1 mb-4">
+                      <SectionTag>
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"/>
+                        </svg>
+                        Path B — Not on Product Team
+                      </SectionTag>
+                    </div>
+                  )}
+
+                  {/* F7 — Forecasted? */}
+                  <Field label="Is this resource forecasted on a product team?" required visible={pathB} error={errors.isResourceForecasted}>
+                    <RadioGroup
+                      name="isResourceForecasted"
+                      options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
+                      value={form.isResourceForecasted}
+                      onChange={v => set('isResourceForecasted', v)}
+                    />
+                  </Field>
+
+                  {/* F8 — Forecasted product team */}
+                  <Field label="Select the forecasted product team" required visible={pathBForecasted} error={errors.forecastedProductTeam}>
+                    <Select options={TEAMS} value={form.forecastedProductTeam} onChange={v => set('forecastedProductTeam', v)} placeholder="Select product team…" />
+                  </Field>
+
+                  {/* F9 — Dev work (forecasted) */}
+                  <Field label="Is this work development related?" required visible={pathBForecasted && !!form.forecastedProductTeam} error={errors.forecastedDevelopmentWork}>
+                    <RadioGroup
+                      name="forecastedDevelopmentWork"
+                      options={[{ value: 'yes', label: 'Yes — Development' }, { value: 'no', label: 'No — Operations / Support' }]}
+                      value={form.forecastedDevelopmentWork}
+                      onChange={v => set('forecastedDevelopmentWork', v)}
+                    />
+                  </Field>
+
+                  {/* F10 — System type (forecasted) */}
+                  <Field label="What type of system is this?" required visible={pathBForecasted && form.forecastedDevelopmentWork === 'yes'} error={errors.forecastedSystemType}>
+                    <RadioGroup name="forecastedSystemType" options={SYSTEM_TYPES} value={form.forecastedSystemType} onChange={v => set('forecastedSystemType', v)} />
+                  </Field>
+
+                  {/* F11 — Assignment details (forecasted) */}
+                  <Field label="Assignment details" required visible={pathBForecasted && !!form.forecastedDevelopmentWork} error={errors.forecastedAssignmentDetails}>
+                    <Select options={ASSIGNMENT_OPTIONS} value={form.forecastedAssignmentDetails} onChange={v => set('forecastedAssignmentDetails', v)} placeholder="Select assignment type…" />
+                  </Field>
+
+                  {/* F17 — Rate confirmation (External, Path B-forecasted) */}
+                  <Field label="Rate confirmation" required visible={pathBForecasted && ext && !isOpPurchase} error={errors.ensureRatesMatch}>
+                    <Checkbox id="rates-b" checked={form.ensureRatesMatch} onChange={v => set('ensureRatesMatch', v)}>
+                      I confirm that the billing rate matches the agreed contract rate
+                    </Checkbox>
+                  </Field>
+
+                  {/* F12 — Platform team standing capacity */}
+                  <Field label="Is this resource on platform team standing capacity?" required visible={pathB && form.isResourceForecasted === 'no'}>
+                    <RadioGroup
+                      name="isPlatformTeamStandingCapacity"
+                      options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
+                      value={form.isPlatformTeamStandingCapacity}
+                      onChange={v => set('isPlatformTeamStandingCapacity', v)}
+                    />
+                  </Field>
+
+                  {/* F13 — Task performed (External + B2) */}
+                  <Field label="Describe the task performed" required visible={pathB2 && ext} error={errors.taskPerformed} hint="min. 10 chars">
+                    <Textarea value={form.taskPerformed} onChange={v => set('taskPerformed', v)} placeholder="Describe the task in detail…" minLen={10} />
+                  </Field>
+
+                  {/* F14 — Prior approval */}
+                  <Field label="Prior approval confirmation" required visible={pathB2} error={errors.priorApprovalConfirmed}>
+                    <Checkbox id="prior-approval" checked={form.priorApprovalConfirmed} onChange={v => set('priorApprovalConfirmed', v)}>
+                      I confirm that prior approval has been obtained for this activity
+                    </Checkbox>
+                  </Field>
+
+                  {/* F15 — VMS managed */}
+                  <Field label="Is this a VMS-managed system?" visible={pathB2}>
+                    <RadioGroup
+                      name="vmsManaged"
+                      options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
+                      value={form.vmsManaged}
+                      onChange={v => set('vmsManaged', v)}
+                    />
+                  </Field>
+
+                  {/* F16 — Assignment details textarea */}
+                  <Field label="Assignment details" visible={pathB2}>
+                    <Textarea value={form.assignmentDetailsTextarea} onChange={v => set('assignmentDetailsTextarea', v)} placeholder="Describe the assignment details…" />
+                  </Field>
+
+                  {/* ── Analyse button ── */}
+                  {canAnalyze && (
+                    <div className="pt-4 mt-2 border-t border-gray-50">
+                      <button
+                        onClick={handleAnalyze}
+                        disabled={aiLoading}
+                        className="btn-primary flex items-center gap-2 text-white px-6 py-2.5 rounded-2xl text-sm font-bold"
+                      >
+                        {aiLoading ? (
+                          <>
+                            <svg className="spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Analysing entry…
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3
+                                   m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.362.362
+                                   a1 1 0 01-1.414 0l-3.296-3.296a1 1 0 010-1.414l.362-.362z" />
+                            </svg>
+                            Get AI Suggestion
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── RIGHT: Result panel (2/5) ── */}
+                <div className="lg:col-span-2 space-y-4">
+
+                  {/* State D — BLOCKED */}
+                  {pathB3Blocked && (
+                    <div className="rounded-2xl p-5 field-animate"
+                      style={{background:'linear-gradient(135deg,#fff1f2,#ffe4e6)',border:'2px solid #fecdd3'}}>
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{background:'#fee2e2'}}>
+                          <svg className="w-4 h-4" style={{color:'#dc2626'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-extrabold text-sm" style={{color:'#991b1b'}}>Submission Blocked</h3>
+                          <p className="text-xs" style={{color:'#f87171'}}>Platform standing capacity detected</p>
+                        </div>
+                      </div>
+                      <p className="text-xs leading-relaxed mb-4" style={{color:'#dc2626'}}>
+                        Resources on platform team standing capacity cannot be submitted here.
+                        Please contact your Finance Business Partner directly.
+                      </p>
+                      <button disabled className="w-full py-2.5 rounded-2xl text-sm font-bold cursor-not-allowed"
+                        style={{background:'#fecdd3',color:'#fca5a5'}}>
+                        Submit Disabled
+                      </button>
+                    </div>
+                  )}
+
+                  {/* State C — Platform Non-Standing (B2) */}
+                  {pathB2 && (
+                    <div className="card p-5 field-animate">
+                      <div className="flex items-center gap-2.5 mb-4">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{background:'#fef3c7'}}>
+                          <svg className="w-4 h-4" style={{color:'#d97706'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
+                                 M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-extrabold text-gray-900 text-sm">Submission Summary</h3>
+                          <p className="text-xs text-gray-400">Non-standing capacity path</p>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl p-4 space-y-2.5 text-sm mb-4" style={{background:'#f9fafb'}}>
+                        {[
+                          ['Employee',       <span className="capitalize">{form.employeeType || '—'}</span>],
+                          ['Path',           'Non-Standing Capacity'],
+                          ['Prior approval', form.priorApprovalConfirmed
+                            ? <span className="font-bold" style={{color:'#059669'}}>✓ Confirmed</span>
+                            : <span style={{color:'#ef4444'}}>Pending</span>],
+                        ].map(([k, v]) => (
+                          <div key={k} className="flex items-center justify-between">
+                            <span className="text-gray-400 text-xs">{k}</span>
+                            <span className="font-semibold text-xs text-gray-700">{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {!ext && (
+                        <div className="rounded-xl p-3 text-xs font-medium mb-3"
+                          style={{background:'#fffbeb',border:'1px solid #fde68a',color:'#92400e'}}>
+                          Internal: PAA confirmation required for WBS code assignment.
+                        </div>
+                      )}
+                      {ext && (
+                        <div className="rounded-xl p-3 text-xs font-medium mb-3"
+                          style={{background:'#fff7ed',border:'1px solid #fed7aa',color:'#9a3412'}}>
+                          External: No WBS code will be assigned for this path.
+                        </div>
+                      )}
+                      <SubmitButton onClick={handleSubmit}
+                        disabled={!form.priorApprovalConfirmed || (ext && form.taskPerformed.length < 10)} />
+                    </div>
+                  )}
+
+                  {/* State B — Operational Purchase */}
+                  {isOpPurchase && activeTeam && (
+                    <div className="rounded-2xl p-5 field-animate"
+                      style={{background:'linear-gradient(135deg,#f5f3ff,#ede9fe)',border:'1px solid #ddd6fe'}}>
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{background:'#ede9fe'}}>
+                          <svg className="w-4 h-4" style={{color:'#7c3aed'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184
+                                 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-extrabold text-sm" style={{color:'#4c1d95'}}>Operational Purchase</h3>
+                          <p className="text-xs" style={{color:'#8b5cf6'}}>AI engine bypassed</p>
+                        </div>
+                      </div>
+                      <p className="text-xs leading-relaxed mb-1" style={{color:'#7c3aed'}}>
+                        WBS code derived directly from team and purchase type.
+                      </p>
+                      <WBSBadge code={deriveWBS(activeTeam.code, null, 'op_purchase')} />
+                      <SubmitButton onClick={handleSubmit} />
+                    </div>
+                  )}
+
+                  {/* State A — Normal AI result */}
+                  {showResult && aiResult && !isOpPurchase && (
+                    <div className="card p-5 field-animate">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="logo-gradient w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3
+                                 m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.362.362
+                                 a1 1 0 01-1.414 0l-3.296-3.296a1 1 0 010-1.414l.362-.362z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-extrabold text-gray-900 text-sm">AI Suggestion</h3>
+                          <p className="text-xs text-gray-400">Rule-based analysis complete</p>
+                        </div>
+                      </div>
+
+                      <ConfidenceBar confidence={aiResult.confidence} category={aiResult.category} />
+                      <p className="text-xs text-gray-500 leading-relaxed mb-4 rounded-xl p-3"
+                        style={{background:'#f9fafb'}}>{aiResult.reasoning}</p>
+
+                      {/* Override */}
+                      <div className="border-t border-gray-50 pt-4">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Override decision</p>
+                        <RadioGroup
+                          name="overrideCategory"
+                          options={[{ value: 'CAPEX', label: 'CAPEX' }, { value: 'OPEX', label: 'OPEX' }]}
+                          value={form.overrideCategory}
+                          onChange={v => set('overrideCategory', v)}
+                        />
+                        {overrideActive && (
+                          <div className="mt-3 p-3 rounded-xl border field-animate"
+                            style={{background:'#fffbeb',border:'1px solid #fde68a'}}>
+                            <p className="text-xs font-bold mb-2" style={{color:'#92400e'}}>Justification required:</p>
+                            <Textarea
+                              value={form.overrideReason}
+                              onChange={v => set('overrideReason', v)}
+                              placeholder="Explain why you are overriding the AI suggestion…"
+                              minLen={10}
+                            />
+                            {errors.overrideReason && <p className="text-xs font-medium mt-1" style={{color:'#ef4444'}}>{errors.overrideReason}</p>}
+                          </div>
+                        )}
+                      </div>
+
+                      <WBSBadge code={wbsCode} />
+                      <SubmitButton onClick={handleSubmit} />
+                    </div>
+                  )}
+
+                  {/* Idle hint */}
+                  {!pathB3Blocked && !pathB2 && !isOpPurchase && !showResult && (
+                    <div className="card p-8 text-center">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                        style={{background:'#eef2ff'}}>
+                        <svg className="w-7 h-7" style={{color:'#c7d2fe'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3
+                               m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.362.362
+                               a1 1 0 01-1.414 0l-3.296-3.296a1 1 0 010-1.414l.362-.362z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-400 mb-1">Result appears here</p>
+                      <p className="text-xs text-gray-300 leading-relaxed">
+                        Complete the form and click<br />
+                        <span className="font-semibold" style={{color:'#6366f1'}}>Get AI Suggestion</span> to classify this entry.
+                      </p>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* ── WBS Reference table ── */}
+          {!submitted && (
+            <section className="max-w-5xl mx-auto px-6 pb-10">
+              <details className="card overflow-hidden">
+                <summary className="cursor-pointer px-6 py-4 text-sm font-bold text-gray-600 hover:bg-gray-50 select-none list-none flex items-center gap-2 transition-colors">
+                  <svg className="w-4 h-4" style={{color:'#6366f1'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18M10 3v18M14 3v18" />
+                  </svg>
+                  WBS Code Reference Table
+                  <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <div className="px-6 pb-6 overflow-x-auto">
+                  <table className="w-full text-xs border-collapse mt-2">
+                    <thead>
+                      <tr>
+                        <th className="text-left px-4 py-3 font-bold text-gray-500" style={{background:'#f9fafb',border:'1px solid #f3f4f6'}}>Product Team</th>
+                        <th className="text-left px-4 py-3 font-bold" style={{background:'#eef2ff',border:'1px solid #e0e7ff',color:'#4f46e5'}}>Dev CAPEX</th>
+                        <th className="text-left px-4 py-3 font-bold" style={{background:'#fff7ed',border:'1px solid #fed7aa',color:'#c2410c'}}>Dev OPEX</th>
+                        <th className="text-left px-4 py-3 font-bold text-gray-500" style={{background:'#f9fafb',border:'1px solid #f3f4f6'}}>Operations</th>
+                        <th className="text-left px-4 py-3 font-bold" style={{background:'#f5f3ff',border:'1px solid #ede9fe',color:'#7c3aed'}}>Op. Purchase</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ['Product Area Works',      '—',              '—',              'DS-53010-01-03', '—'],
+                        ['Advanced Scheduling',     'DS-53010-03-01', 'DS-53010-03-02', 'DS-53010-03-03', 'DS-53010-03-04-XX'],
+                        ['Order Inflow / Closure',  'DS-53010-04-01', 'DS-53010-04-02', 'DS-53010-04-03', 'DS-53010-04-04-XX'],
+                        ['Maintenance & Execution', 'DS-53010-05-01', 'DS-53010-05-02', 'DS-53010-05-03', 'DS-53010-05-04-XX'],
+                        ['Service Foundation',      'DS-53010-08-01', 'DS-53010-08-02', 'DS-53010-08-03', 'DS-53010-08-04-XX'],
+                        ['Virtual Technician',      'DS-53010-09-01', 'DS-53010-09-02', 'DS-53010-09-03', 'DS-53010-09-04-XX'],
+                        ['AI Big Bets',             'DS-53010-10-01', 'DS-53010-10-02', 'DS-53010-10-03', 'DS-53010-10-04-XX'],
+                      ].map(([team, ...cols], i) => (
+                        <tr key={team} style={{background: i % 2 === 0 ? '#fff' : '#fafafa'}}>
+                          <td className="px-4 py-2.5 font-semibold text-gray-700" style={{border:'1px solid #f3f4f6'}}>{team}</td>
+                          {cols.map((c, j) => (
+                            <td key={j} className={`px-4 py-2.5 font-mono ${c === '—' ? 'text-gray-200' : 'text-gray-600'}`}
+                              style={{border:'1px solid #f3f4f6'}}>{c}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </section>
+          )}
+
+          {/* ── Footer ── */}
+          <footer style={{borderTop:'1px solid #e0e7ff'}} className="py-5">
+            <div className="max-w-5xl mx-auto px-6 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="logo-gradient w-5 h-5 rounded-md flex items-center justify-center">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01
+                         M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <span className="text-xs font-semibold text-gray-400">ExpenseWise v1.0 — Internal Use Only — April 2026</span>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-gray-300 font-medium">
+                <span>7 Product Teams</span><span>·</span>
+                <span>17 Form Fields</span><span>·</span>
+                <span>3 Result Branches</span>
+              </div>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
